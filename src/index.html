@@ -1,0 +1,119 @@
+<!doctype html>
+<head>
+  <link href="https://static.contentful.com/app/main-62e0abc7.css" media="all" rel="stylesheet" type="text/css">
+  <link href="https://static.contentful.com/app/vendor-976872d7.css" media="all" rel="stylesheet" type="text/css">
+  <link href="https://contentful.github.io/ui-extensions-sdk/cf-extension.css" media="all" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="https://unpkg.com/contentful-ui-extensions-sdk@3"></script>
+</head>
+<div class="widget-slug-editor">
+  <input id="slug" type="text" class="form-control" style="width: 98%; font-size: 14px">
+  <i id="error" class="fa fa-exclamation-triangle is-slug-duplicate"></i>
+  <i id="ok" class="fa fa-check-circle is-slug-unique"></i>
+  <i id="loading" class="fa fa-spinner fa-spin"></i>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/es6-promise/3.0.2/es6-promise.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/speakingurl/7.0.0/speakingurl.min.js"></script>
+
+<script>
+var cfExt = window.contentfulExtension || window.contentfulWidget
+
+cfExt.init(function (api) {
+  var slugField = api.field
+  var titleFieldName = api.contentType.displayField
+  var titleField = api.entry.fields[titleFieldName]
+
+  var _ = window._
+  var getSlug = window.getSlug
+  var debouncedUpdateStatus = _.debounce(updateStatus, 500)
+
+  var input = document.getElementById('slug')
+  var statusElements = {
+    error: document.getElementById('error'),
+    ok: document.getElementById('ok'),
+    loading: document.getElementById('loading')
+  }
+
+  api.window.updateHeight()
+
+  titleField.onValueChanged(handleSlugChange)
+
+  input.addEventListener('input', function () {
+    handleSlugChange(input.value)
+  })
+  input.addEventListener('change', function () {
+    handleSlugChange(input.value)
+  })
+
+  updateStatus(slugField.getValue())
+
+  /**
+   * Handle change of slug value caused by either changing slug field
+   * or changing the title of the entry
+   */
+  function handleSlugChange (value) {
+    setSlug(getSlug(value || ''))
+  }
+
+  /**
+   * Set the input value to 'slug' and update the status by checking for
+   * duplicates.
+   */
+  function setSlug (slug) {
+  	var preSlug = 'work/' + slug
+    input.value = preSlug
+    slugField.setValue(preSlug)
+    setStatus('loading')
+    debouncedUpdateStatus(preSlug)
+  }
+
+  /**
+   * Show inline status icon based on current status
+   */
+  function updateStatus (slug) {
+    getDuplicates(slug).then(function (hasDuplicates) {
+      if (hasDuplicates) {
+        setStatus('error')
+      } else {
+        setStatus('ok')
+      }
+    })
+  }
+
+  /**
+   * Show icon for given status
+   */
+  function setStatus (status) {
+    _.each(statusElements, function (el, name) {
+      if (name === status) {
+        el.style.display = 'inline'
+      } else {
+        el.style.display = 'none'
+      }
+    })
+  }
+
+
+  /**
+   * Check if slug is already in use.
+   * Resolves to 'true' if there are entries of the given content type that have
+   * the same 'slug' value.
+   */
+  function getDuplicates (slug) {
+    if (!slug) {
+      return Promise.resolve(false)
+    }
+
+    var query = {}
+
+    query['content_type'] = api.entry.getSys().contentType.sys.id
+    query['fields.' + slugField.id] = slug
+    query['sys.id[ne]'] = api.entry.getSys().id
+    query['sys.publishedAt[exists]'] = true
+
+    return api.space.getEntries(query).then(function (result) {
+      return result.total > 0
+    })
+  }
+})
+</script>

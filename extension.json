@@ -1,0 +1,8 @@
+{
+  "id": "slug-prefix",
+  "name": "Slug Prefix",
+  "srcdoc": "./build/index.html",
+  "fieldTypes": [
+    "Symbol"
+  ]
+}
