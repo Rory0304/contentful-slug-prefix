@@ -16,6 +16,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/speakingurl/7.0.0/speakingurl.min.js"></script>
 
 <script>
+const SANITIZE_REGEX = /[`~!@#$%^&*()_|+\-=?;:'",.<>\\{\\}\\[\]\\\\/]/g;
+const WHITE_SPACE_REGEX = /\s+/g;
+
 var cfExt = window.contentfulExtension || window.contentfulWidget
 
 cfExt.init(function (api) {
@@ -24,7 +27,6 @@ cfExt.init(function (api) {
   var titleField = api.entry.fields[titleFieldName]
 
   var _ = window._
-  var getSlug = window.getSlug
   var debouncedUpdateStatus = _.debounce(updateStatus, 500)
 
   var input = document.getElementById('slug')
@@ -52,7 +54,24 @@ cfExt.init(function (api) {
    * or changing the title of the entry
    */
   function handleSlugChange (value) {
-    setSlug(getSlug(value || ''))
+    setSlug(value || '')
+  }
+
+  /**
+   * Custom: remove all html tags
+   */
+  function removeAllHtmlTag(html) {
+    return html.replace(/<\/?[^>]+(>|$)/g, '');
+  }
+
+  /*
+  * Custom: conver to slug
+  */
+  function convertToSlug(text) {
+    return removeAllHtmlTag(text)
+      .replace(SANITIZE_REGEX, '')
+      .replace(WHITE_SPACE_REGEX, '-')
+      .toLowerCase();
   }
 
   /**
@@ -60,8 +79,8 @@ cfExt.init(function (api) {
    * duplicates.
    */
   function setSlug (slug) {
-  	var preSlug = 'work/' + slug
-    input.value = preSlug
+  	var preSlug = convertToSlug(slug)
+    input.value = slug
     slugField.setValue(preSlug)
     setStatus('loading')
     debouncedUpdateStatus(preSlug)
