@@ -54,6 +54,7 @@ cfExt.init(function (api) {
    * or changing the title of the entry
    */
   function handleSlugChange (value) {
+    console.log(value)
     setSlug(value || '')
   }
 
@@ -80,6 +81,7 @@ cfExt.init(function (api) {
    */
   function setSlug (slug) {
   	var preSlug = convertToSlug(slug)
+    console.log('pre', preSlug);
     input.value = preSlug
     slugField.setValue(preSlug)
     setStatus('loading')
